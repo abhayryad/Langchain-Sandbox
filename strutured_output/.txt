@@ -1,0 +1,4 @@
+so there are structured outputs. either we use json or pydantic
+json is UNIVRSAL for all langs
+
+there is also json moDE and fn CAlling
