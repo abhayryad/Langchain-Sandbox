@@ -1,0 +1,102 @@
+introduction to LangChain chains, explaining their purpose, different types, and how to implement them.
+
+Here are the detailed notes from the video:
+
+Introduction and Recap (0:00-2:42)
+
+The video introduces "Chains" as a fundamental and highly important topic in LangChain, even giving the framework its name.
+The instructor plans to cover chain fundamentals and various types of chains in this video, with a subsequent video focusing on the internal workings (Runnables).
+Recap: Previously covered LangChain components include Models (how to interact with different AI models) and Prompts (how to send various types of inputs to LLMs). Also covered was Structured Output Generation using Output Parsers.
+What & Why (Chains) (2:42-8:11)
+
+When building LLM-based applications, you'll notice that they consist of multiple small steps.
+Example (Simple Application): Taking a prompt from a user, sending it to an LLM, and displaying the response. This involves three steps:
+Getting the prompt from the user.
+Sending the prompt to the LLM.
+Processing the LLM's response and displaying it.
+Problem with Manual Execution: Individually executing each step (designing prompts, invoking LLM, extracting content) is manual and becomes cumbersome for complex applications.
+Solution: Chains: Chains provide a way to create a pipeline by connecting these small steps.
+The output of the first step automatically becomes the input for the second step, and so on.
+Once the pipeline is built, you only need to provide the input to the first step, and the entire pipeline executes automatically, giving you the final output. This significantly simplifies development.
+Beyond Sequential: Chains allow for building various pipeline structures, not just linear/sequential ones. You can create:
+Parallel Chains: Execute multiple chains concurrently.
+Conditional Chains: Execute different chains based on specific conditions.
+The video promises to demonstrate Simple, Sequential, Parallel, and Conditional chains.
+Simple Chain (8:11-14:30)
+
+Objective: Generate five interesting facts about a user-provided topic.
+Steps:
+Take a topic as input.
+Formulate a prompt: "Generate five interesting facts about {topic}."
+Send the prompt to an LLM.
+Parse the LLM's raw output into a clean string.
+Components Used:
+ChatOpenAI (for the LLM)
+PromptTemplate (for prompt creation)
+StringOutputParser (to parse LLM output)
+Chain Construction: The video demonstrates building the chain using the LangChain Expression Language (LCEL) with the pipe | operator: prompt | model | parser.
+Invocation: The chain is invoked by calling chain.invoke({"topic": "Cricket"}).
+Visualization: You can visualize the chain's structure using chain.get_graph().print_ascii().
+Sequential Chain (14:30-19:48)
+
+Objective: Create an application that takes a topic, generates a detailed report on it, and then summarizes that report into five key points.
+Steps:
+Prompt 1: "Generate a detailed report on {topic}." (Input: topic)
+Model 1: LLM generates the detailed report.
+Parser: Extracts the report text.
+Prompt 2: "Generate a five-pointer summary from the following text: {text}." (Input: the detailed report from previous step)
+Model 2: LLM generates the summary.
+Parser: Extracts the summary text.
+Components Used:
+Two PromptTemplate instances (prompt_one, prompt_two).
+One ChatOpenAI model.
+One StringOutputParser.
+Chain Construction (LCEL): prompt_one | model | parser | prompt_two | model | parser.
+This demonstrates how the output of one sequence of operations feeds as input into the next, forming a longer sequential pipeline.
+Parallel Chain (19:48-32:36)
+
+Objective: Take a large text document and concurrently generate two distinct outputs:
+Short and simple notes from the text.
+Five short question-answers (quiz) from the text. Then, merge these two outputs into a single document.
+Architecture:
+User provides a text document.
+This text is sent in parallel to two different chains:
+Chain 1 (Notes): PromptTemplate (notes) -> Model 1 (e.g., ChatOpenAI) -> StringOutputParser.
+Chain 2 (Quiz): PromptTemplate (quiz) -> Model 2 (e.g., ChatAnthropic) -> StringOutputParser.
+The outputs of both parallel chains (notes and quiz) are then sent to a third merging chain:
+PromptTemplate (merge) -> Model (e.g., ChatOpenAI) -> StringOutputParser.
+Key Component: RunnableParallel is used to execute the notes and quiz generation chains concurrently.
+RunnableParallel takes a dictionary where keys are output names and values are the chains to run in parallel.
+Chain Construction:
+parallel_chain = RunnableParallel(notes=notes_chain, quiz=quiz_chain)
+merge_chain = prompt_three | model_one | parser
+final_chain = parallel_chain | merge_chain
+The example uses an SVM text as input to demonstrate the functionality.
+Conditional Chains (32:36-53:12)
+
+Objective: Build an application where a user provides product feedback. Based on the sentiment (positive or negative), the application provides an appropriate response.
+Architecture:
+User provides feedback text.
+Classification Chain: PromptTemplate (classify sentiment) -> Model -> PydanticOutputParser (to ensure consistent "Positive" or "Negative" output).
+Branching Logic: Based on the classified sentiment, one of two response chains is executed:
+If Positive: PromptTemplate (positive response) -> Model -> StringOutputParser.
+If Negative: PromptTemplate (negative response) -> Model -> StringOutputParser.
+Ensuring Consistent Output: The video emphasizes using PydanticOutputParser to force the sentiment classification to be strictly "Positive" or "Negative," which is crucial for the conditional logic.
+A Pydantic BaseModel Feedback is defined with a sentiment field that is a Literal of "Positive" or "Negative."
+Key Component: RunnableBranch is used to implement the conditional logic.
+RunnableBranch takes a list of tuples, where each tuple is (condition_function, chain_to_execute_if_true).
+It also takes a default chain to execute if no condition is met.
+RunnableLambda is introduced as a way to convert a simple Python function (like a lambda function for default cases or conditions) into a "Runnable" component that can be part of a chain.
+Chain Construction:
+classification_chain = prompt_one | model | parser_two (Pydantic parser)
+branch_chain = RunnableBranch(
+(lambda x: x['sentiment'] == "Positive", positive_response_chain),
+(lambda x: x['sentiment'] == "Negative", negative_response_chain),
+default_error_chain_with_runnable_lambda )
+final_chain = classification_chain | branch_chain
+This demonstrates how different parts of the chain can be conditionally executed, mimicking if-else statements in the LangChain universe.
+Conclusion (53:12-53:58)
+
+The video concludes by reiterating the importance of Chains for building complex LLM applications.
+It highlights the mastery of Simple, Sequential, Parallel, and Conditional chains.
+The next video will delve deeper into the underlying concept of Runnables and LangChain Expression Language (LCEL), which will further clarify how chains work behind the scenes.
